@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase-client";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase-client";
 
 // ============================================================
 // Prisma-compatible wrapper using Supabase (PostgREST over HTTPS)
@@ -209,6 +209,7 @@ class SupabaseModel {
   }
 
   async findUnique({ where, include }: { where: Record<string, unknown>; include?: Record<string, unknown> } = {} as any): Promise<any> {
+    if (!isSupabaseConfigured) return null;
     const rw = await this.resolveRelationFilters(where);
     let q = supabase.from(this.table).select(buildSelect(this.table, include));
     q = applyWhere(q, rw);
@@ -238,6 +239,7 @@ class SupabaseModel {
   }
 
   async findMany({ where, include, orderBy, skip, take, distinct }: { where?: Record<string, unknown>; include?: Record<string, unknown>; orderBy?: Record<string, string>; skip?: number; take?: number; distinct?: string } = {}): Promise<any[]> {
+    if (!isSupabaseConfigured) return [];
     const rw = await this.resolveRelationFilters(where);
     let q = supabase.from(this.table).select(buildSelect(this.table, include));
     q = applyWhere(q, rw);
@@ -264,6 +266,7 @@ class SupabaseModel {
   }
 
   async create({ data, include }: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any> {
+    if (!isSupabaseConfigured) throw new Error("Supabase belum dikonfigurasi. Set NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY dalam .env");
     const selectStr = buildSelect(this.table, include);
     const dataWithTs = this.addTimestamps(data);
     const { data: result, error } = await supabase.from(this.table).insert(dataWithTs).select(selectStr).single();
@@ -321,6 +324,7 @@ class SupabaseModel {
   }
 
   async deleteMany({ where }: { where?: Record<string, unknown> } = {}): Promise<{ count: number }> {
+    if (!isSupabaseConfigured) return { count: 0 };
     let q: any = supabase.from(this.table).delete();
     if (where) {
       q = applyWhere(q, where);
@@ -341,6 +345,7 @@ class SupabaseModel {
   }
 
   async count({ where }: { where?: Record<string, unknown> } = {}): Promise<number> {
+    if (!isSupabaseConfigured) return 0;
     const rw = await this.resolveRelationFilters(where);
     let q = supabase.from(this.table).select("*", { count: "exact", head: true });
     q = applyWhere(q as any, rw) as any;
