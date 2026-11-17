@@ -152,10 +152,12 @@ async function main() {
 
   // Users
   const r = rnd(42);
-  const users: { id: string; staffNo: string; name: string; email: string; role: string; dept: string; position: string }[] = [];
+  const users: { id: string; staffNo: string; name: string; email: string; role: string; dept: string; position: string; password?: string }[] = [];
 
   // Admin
   users.push({ id: "u-admin", staffNo: "A1001", name: "Ahmad Faizal bin Rahman", email: "admin@alamin.edu.my", role: "ADMIN", dept: departments[3].id, position: "Pentadbir Sistem LMS" });
+  // Admin (akaun pengurusan Hazwan)
+  users.push({ id: "u-admin2", staffNo: "A0001", name: "Hazwan Sabo", email: "hazwansabo@gmail.com", role: "ADMIN", dept: departments[3].id, position: "Pentadbir Sistem LMS", password: "hazwan123" });
 
   // HR / Pengurus
   users.push({ id: "u-hr1", staffNo: "A1002", name: "Siti Nurhaliza binti Osman", email: "hr1@alamin.edu.my", role: "HR", dept: departments[3].id, position: "Pegawai HR" });
@@ -195,7 +197,7 @@ async function main() {
         staffNo: u.staffNo,
         name: u.name,
         email: u.email,
-        passwordHash: hash("password123"),
+        passwordHash: hash(u.password || "password123"),
         role: u.role,
         departmentId: u.dept,
         position: u.position,
