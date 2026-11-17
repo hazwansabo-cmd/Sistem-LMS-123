@@ -1,9 +1,8 @@
 // Seed script for LMS Al Amin Edu Oasis
 // Run: bun run prisma/seed.ts
-import { PrismaClient } from "@prisma/client";
+// Uses Supabase client (PostgREST over HTTPS) — works without port 5432 access
+import { db } from "../src/lib/db";
 import { createHash } from "crypto";
-
-const db = new PrismaClient();
 
 // Deterministic helpers
 const rnd = (seed: number) => {
