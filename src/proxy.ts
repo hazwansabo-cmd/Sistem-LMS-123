@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/middleware";
 
 /**
@@ -11,12 +11,16 @@ import { createClient } from "@/utils/supabase/middleware";
  * `sb-*` cookies while the LMS manages its own session cookie.
  */
 export async function proxy(request: NextRequest) {
-  const { supabase, supabaseResponse } = createClient(request);
-
-  // Refresh the Supabase session (no-op if not signed in via Supabase Auth)
-  await supabase.auth.getUser();
-
-  return supabaseResponse;
+  try {
+    const { supabase, supabaseResponse } = createClient(request);
+    // Refresh the Supabase session (no-op if not signed in via Supabase Auth)
+    // Wrapped in try-catch so the app doesn't crash if Supabase is unreachable
+    await supabase.auth.getUser();
+    return supabaseResponse;
+  } catch {
+    // If Supabase is unreachable, continue without session refresh
+    return NextResponse.next({ request: { headers: request.headers } });
+  }
 }
 
 export const config = {
