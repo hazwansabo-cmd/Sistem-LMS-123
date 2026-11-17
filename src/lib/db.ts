@@ -129,7 +129,7 @@ function applyWhere(query: ReturnType<typeof supabase.from>["prototype"], where?
 class SupabaseModel {
   constructor(private table: string) {}
 
-  async findUnique({ where, include }: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any> {
+  async findUnique({ where, include }: { where: Record<string, unknown>; include?: Record<string, unknown> } = {} as any): Promise<any> {
     let q = supabase.from(this.table).select(buildSelect(this.table, include));
     q = applyWhere(q, where);
     const { data, error } = await q.limit(1).maybeSingle();
@@ -140,7 +140,7 @@ class SupabaseModel {
     return data;
   }
 
-  async findFirst({ where, include, orderBy }: { where?: Record<string, unknown>; include?: Record<string, unknown>; orderBy?: Record<string, string> }): Promise<any> {
+  async findFirst({ where, include, orderBy }: { where?: Record<string, unknown>; include?: Record<string, unknown>; orderBy?: Record<string, string> } = {}): Promise<any> {
     let q = supabase.from(this.table).select(buildSelect(this.table, include));
     q = applyWhere(q, where);
     if (orderBy) {
@@ -156,7 +156,7 @@ class SupabaseModel {
     return data;
   }
 
-  async findMany({ where, include, orderBy, skip, take, distinct }: { where?: Record<string, unknown>; include?: Record<string, unknown>; orderBy?: Record<string, string>; skip?: number; take?: number; distinct?: string }): Promise<any[]> {
+  async findMany({ where, include, orderBy, skip, take, distinct }: { where?: Record<string, unknown>; include?: Record<string, unknown>; orderBy?: Record<string, string>; skip?: number; take?: number; distinct?: string } = {}): Promise<any[]> {
     let q = supabase.from(this.table).select(buildSelect(this.table, include));
     q = applyWhere(q, where);
     if (orderBy) {
@@ -234,13 +234,18 @@ class SupabaseModel {
     return null;
   }
 
-  async deleteMany({ where }: { where?: Record<string, unknown> }): Promise<{ count: number }> {
+  async deleteMany({ where }: { where?: Record<string, unknown> } = {}): Promise<{ count: number }> {
     let q: any = supabase.from(this.table).delete();
-    if (where) q = applyWhere(q, where);
+    if (where) {
+      q = applyWhere(q, where);
+    } else {
+      // PostgREST requires a WHERE clause for DELETE — match all rows
+      q = q.neq("id", "__impossible_id__");
+    }
     const { count, error } = await q;
     if (error) {
-      // If no rows match, Supabase returns an error — treat as 0 deletes
-      if (error.code === "PGRST116" || error.message.includes("JSON")) {
+      // If no rows match, Supabase may error — treat as 0 deletes
+      if (error.code === "PGRST116" || error.message.includes("JSON") || error.message.includes("no rows")) {
         return { count: 0 };
       }
       console.error(`[db] deleteMany ${this.table} error:`, error.message);
@@ -249,7 +254,7 @@ class SupabaseModel {
     return { count: count || 0 };
   }
 
-  async count({ where }: { where?: Record<string, unknown> }): Promise<number> {
+  async count({ where }: { where?: Record<string, unknown> } = {}): Promise<number> {
     let q = supabase.from(this.table).select("*", { count: "exact", head: true });
     q = applyWhere(q as any, where) as any;
     const { count, error } = await q;
@@ -260,12 +265,12 @@ class SupabaseModel {
     return count || 0;
   }
 
-  async aggregate({ where, _count }: { where?: Record<string, unknown>; _count?: { _all?: boolean; [key: string]: boolean | undefined } }): Promise<any> {
+  async aggregate({ where, _count }: { where?: Record<string, unknown>; _count?: { _all?: boolean; [key: string]: boolean | undefined } } = {}): Promise<any> {
     const c = await this.count({ where });
     return { _count: { _all: c } };
   }
 
-  async groupBy({ by, where, _count }: { by: string | string[]; where?: Record<string, unknown>; _count?: boolean | { [key: string]: boolean } }): Promise<any[]> {
+  async groupBy({ by, where, _count }: { by: string | string[]; where?: Record<string, unknown>; _count?: boolean | { [key: string]: boolean } } = {} as any): Promise<any[]> {
     const byArr = Array.isArray(by) ? by : [by];
     let q: any = supabase.from(this.table).select(`${byArr.join(",")}`, { count: "exact" });
     if (where) q = applyWhere(q, where);
