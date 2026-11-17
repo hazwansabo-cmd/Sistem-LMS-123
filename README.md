@@ -52,23 +52,65 @@ secara manual.
 - Node.js 20+ atau Bun
 - Sambungan internet untuk pemasangan pakej
 
-### Langkah
+### Pilihan A: Supabase PostgreSQL (Pengeluaran)
+
+Projek ini disambungkan ke **Supabase** sebagai pangkalan data pengeluaran
+(mengikut PRD bahagian 9.2). Skema Prisma menggunakan `provider = "postgresql"`.
 
 ```bash
 # 1. Pasang dependencies
-bun install        # atau: npm install
+bun install
 
-# 2. Salin fail persekitaran
+# 2. Salin fail persekitaran dan isi dengan kredensial Supabase
 cp .env.example .env
+#   Edit .env dengan connection string Supabase anda:
+#   DATABASE_URL=postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
+#   (Jika password mengandungi "@", tukarkan kepada %40)
 
-# 3. Generate Prisma client & push skema ke SQLite
+# 3. Generate Prisma client
 bun run db:generate
+
+# 4. Push skema ke Supabase (cipta semua jadual)
 bun run db:push
 
-# 4. Semai data contoh (dummy)
+# 5. Semai data contoh (dummy)
 bun run prisma/seed.ts
 
-# 5. Mulakan pelayan pembangunan
+# 6. Mulakan pelayan
+bun run dev
+```
+
+#### Kredensial Supabase (projek ini)
+
+| Item | Nilai |
+|---|---|
+| Project URL | `https://tdclvjouktyggprxaxmn.supabase.co` |
+| Direct Connection | `postgresql://postgres:****@db.tdclvjouktyggprxaxmn.supabase.co:5432/postgres` |
+
+> Dapatkan connection string penuh dari Supabase Dashboard →
+> Settings → Database → Connection string. Simpan dalam `.env` (jangan
+> commit ke GitHub).
+
+#### Supabase CLI (pilihan)
+
+```bash
+supabase login
+supabase init
+supabase link --project-ref tdclvjouktyggprxaxmn
+```
+
+### Pilihan B: SQLite (Prototaip / Pembangunan Tempatan)
+
+Untuk pembangunan tempatan tanpa Supabase, tukar `provider` dalam
+`prisma/schema.prisma` ke `"sqlite"` dan gunakan fail tempatan:
+
+```bash
+# Dalam .env:
+# DATABASE_URL=file:/home/z/my-project/db/custom.db
+
+bun run db:generate
+bun run db:push
+bun run prisma/seed.ts
 bun run dev
 ```
 
@@ -165,15 +207,27 @@ pematuhan Akta Perlindungan Data Peribadi 2010 (PDPA) Malaysia:
 
 ---
 
-## Migrasi ke Pangkalan Data Sebenar
+## Migrasi SQLite → Supabase PostgreSQL
 
-Lapisan akses data diabstrak menerusi API routes (`src/app/api/`). Untuk
-beralih ke pangkalan data sebenar:
+Projek kini dikonfigurasi untuk **Supabase PostgreSQL** secara lalai. Lapisan
+akses data diabstrak menerusi API routes (`src/app/api/`) — tiada perubahan
+pada komponen UI diperlukan.
 
-1. Tukar `DATABASE_URL` dalam `.env` ke PostgreSQL/MySQL
-2. Kemas kini `prisma/schema.prisma` (`provider` datasource)
-3. Jalankan `bun run db:push`
-4. Tiada perubahan pada komponen UI diperlukan
+### Langkah migrasi
+
+1. Pastikan `prisma/schema.prisma` menggunakan `provider = "postgresql"`
+2. Isi `.env` dengan connection string Supabase (rujuk Pilihan A di atas)
+3. Jalankan `bun run db:generate` (regenerate Prisma client untuk PostgreSQL)
+4. Jalankan `bun run db:push` (cipta jadual di Supabase)
+5. Jalankan `bun run prisma/seed.ts` (semai data contoh)
+
+### Nota connection string
+
+- Jika password mengandungi `@`, `:`, `/`, atau aksara reserved lain,
+  URL-encodekan (cth: `@` → `%40`)
+- Supabase Direct Connection: port `5432`
+- Supabase Pooler (PgBouncer): port `6543` — tambah `?pgbouncer=true&connection_limit=1`
+- Untuk serverless (Vercel), gunakan pooler untuk mengelakkan kehabisan sambungan
 
 ---
 
