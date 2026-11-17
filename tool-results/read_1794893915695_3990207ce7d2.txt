@@ -1,0 +1,535 @@
+     1→// Seed script for LMS Al Amin Edu Oasis
+     2→// Run: bun run prisma/seed.ts
+     3→import { PrismaClient } from "@prisma/client";
+     4→import { createHash } from "crypto";
+     5→
+     6→const db = new PrismaClient();
+     7→
+     8→// Deterministic helpers
+     9→const rnd = (seed: number) => {
+    10→  let s = seed;
+    11→  return () => {
+    12→    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    13→    return s / 0x7fffffff;
+    14→  };
+    15→};
+    16→const pick = <T>(arr: T[], r: () => number) => arr[Math.floor(r() * arr.length)];
+    17→
+    18→const hash = (s: string) => "demo$" + createHash("sha256").update(s).digest("hex").slice(0, 16);
+    19→
+    20→// Malaysian names across communities
+    21→const MALAY_FIRST = ["Ahmad", "Siti", "Muhammad", "Nurul", "Abdul", "Aisyah", "Fatimah", "Mohd", "Hafiz", "Nur", "Azman", "Rohaya", "Kamal", "Zainab", "Fauzi", "Halimah"];
+    22→const CHINESE_FIRST = ["Wei", "Hui", "Jia", "Min", "Kah", "Lim", "Tan", "Chong", "Lee", "Wong", "Mei", "Sze"];
+    23→const INDIAN_FIRST = ["Kumar", "Priya", "Raj", "Deepa", "Suresh", "Lakshmi", "Arjun", "Meena", "Vimal", "Anita"];
+    24→const LAST = ["bin Abdullah", "binti Osman", "bin Rahman", "binti Hassan", "bin Ismail", "binti Yusof", "bin Ali", "binti Mohamed", "Tan", "Lim", "Wong", "Goh", "Ng", "Chong", "Kumar", "a/l Subramaniam", "a/p Devi", "Menon", "Singh", "Krishnan"];
+    25→const POSITIONS: Record<string, string[]> = {
+    26→  ADMIN_FINANCE: ["Pegawai Pentadbiran", "Pembantu Kewanan", "Akauntan", "Kerani Kewanan"],
+    27→  CUSTOMER_SERVICE: ["Pegawai Khidmat Pelanggan", "Penolong Khidmat Pelanggan", "Wakil Sokongan"],
+    28→  IT_DEV: ["Jurutera Perisian", "Penganalisis Sistem", "Pentadbir IT", "Pembangun Frontend"],
+    29→  HR_TRAINING: ["Pegawai HR", "Penyelaras Latihan", "Pegawai Pembangunan Staf"],
+    30→  OPERATIONS: ["Pegawai Operasi", "Penyelia Logistik", "Pembantu Operasi"],
+    31→  MARKETING: ["Pegawai Pemasaran", "Penyelaras Kandungan", "Eksekutif Media Sosial"],
+    32→};
+    33→
+    34→const AVATAR_COLORS = ["#0f4c75", "#3282b8", "#0b8457", "#2a9d8f", "#e76f51", "#7b2cbf", "#c44569", "#3c6e71", "#1b998b", "#5d4e75"];
+    35→
+    36→const COURSES = [
+    37→  { code: "AI-101", title: "Asas Kecerdasan Buatan", level: "PEMULA", hours: 4, path: "ALL", cat: "Asas", desc: "Pengenalan kepada AI, ML dan AI generatif: sejarah, mitos dan realiti, serta contoh kegunaan di Malaysia.", topics: ["Pengenalan: Apa itu AI", "ML vs AI Generatif", "Sejarah & Evolusi AI", "Mitos dan Realiti AI", "Kegunaan AI di Malaysia"] },
+    38→  { code: "AI-102", title: "Kejuruteraan Prompt (Prompt Engineering)", level: "PEMULA", hours: 5, path: "ALL", cat: "Asas", desc: "Struktur prompt, peranan, konteks, format output dan teknik langkah demi langkah dengan contoh dalam BM.", topics: ["Anatomi Prompt", "Peranan & Persona", "Konteks dan Had", "Format Output", "Teknik Chain-of-Thought", "Contoh Prompt BM"] },
+    39→  { code: "AI-103", title: "AI Generatif untuk Kerja Harian", level: "PEMULA", hours: 4, path: "ALL", cat: "Produktiviti", desc: "Menulis e-mel, ringkasan mesyuarat, terjemahan, penyelidikan dan penjanaan idea dengan AI.", topics: ["Menulis E-mel Profesional", "Ringkasan Mesyuarat", "Terjemahan & Laras Bahasa", "Penyelidikan Pantas", "Penjanaan Idea & Brainstorm"] },
+    40→  { code: "AI-201", title: "Analisis Data dengan Bantuan AI", level: "PERTENGAHAN", hours: 6, path: "ADMIN_FINANCE", cat: "Data", desc: "Pembersihan data, formula Excel dibantu AI, visualisasi dan tafsiran keputusan.", topics: ["Pembersihan Data", "Formula Excel dibantu AI", "Visualisasi Data", "Tafsiran Keputusan", "Kesilapan Biasa"] },
+    41→  { code: "AI-202", title: "Automasi Kerja dan Aliran Kerja AI", level: "PERTENGAHAN", hours: 6, path: "ADMIN_FINANCE", cat: "Automasi", desc: "Mengenal pasti tugas berulang, alat tanpa kod, ejen AI dan pengukuran penjimatan masa.", topics: ["Kenal Tugas Berulang", "Alat Tanpa Kod", "Ejen AI Asas", "Membina Aliran Kerja", "Ukur Penjimatan Masa"] },
+    42→  { code: "AI-203", title: "AI untuk Khidmat Pelanggan", level: "PERTENGAHAN", hours: 4, path: "CUSTOMER_SERVICE", cat: "Produktiviti", desc: "Chatbot, templat balasan, analisis sentimen dan kawalan kualiti.", topics: ["Chatbot Asas", "Templat Balasan", "Analisis Sentimen", "Kawalan Kualiti", "Eskalasi kepada Manusia"] },
+    43→  { code: "AI-301", title: "Etika, Privasi dan Tadbir Urus AI", level: "SEMUA", hours: 3, path: "ALL", cat: "Tadbir", desc: "PDPA 2010, kerahsiaan data, bias, halusinasi dan dasar penggunaan AI organisasi.", topics: ["PDPA 2010", "Kerahsiaan Data", "Bias dalam AI", "Halusinasi", "Dasar AI Organisasi"] },
+    44→  { code: "AI-302", title: "Keselamatan Penggunaan AI", level: "SEMUA", hours: 3, path: "ALL", cat: "Tadbir", desc: "Kebocoran data, prompt injection, phishing dibantu AI dan amalan terbaik.", topics: ["Kebocoran Data", "Prompt Injection", "Phishing dibantu AI", "Amalan Terbaik", "Pelaporan Insiden"] },
+    45→  { code: "AI-401", title: "Membina Aplikasi AI (Pengenalan untuk Pembangun)", level: "LANJUTAN", hours: 8, path: "IT_DEV", cat: "Pembangunan", desc: "API model bahasa, RAG asas, penilaian output, kos dan prestasi.", topics: ["API Model Bahasa", "Panggilan & Token", "RAG Asas", "Penilaian Output", "Kos & Prestasi"] },
+    46→];
+    47→
+    48→const QUESTION_BANK: Record<string, { q: string; type: string; opts: string[]; ans: string; exp: string }[]> = {
+    49→  "AI-101": [
+    50→    { q: "Apakah perbezaan utama antara AI tradisional dan AI generatif?", type: "multiple", opts: ["AI generatif hanya mengira nombor", "AI generatif boleh menghasilkan teks, imej atau kod baharu", "AI tradisional lebih pantas dalam semua tugas", "Tiada perbezaan"], ans: "AI generatif boleh menghasilkan teks, imej atau kod baharu", exp: "AI generatif menghasilkan kandungan baharu berdasarkan pola yang dipelajari." },
+    51→    { q: "PDPA 2010 mengawal apa di Malaysia?", type: "multiple", opts: ["Pengangkutan awam", "Perlindungan data peribadi", "Hak cipta", "Cukai pendapatan"], ans: "Perlindungan data peribadi", exp: "Akta Perlindungan Data Peribadi 2010 mengawal pemprosesan data peribadi." },
+    52→    { q: "AI bermaksud...", type: "short", opts: [], ans: "Kecerdasan Buatan", exp: "AI = Artificial Intelligence = Kecerdasan Buatan." },
+    53→    { q: "Pernyataan: AI generatif sentiasa memberi jawapan yang tepat.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Salah", exp: "AI generatif boleh berhalusinasi (memberi maklumat salah)." },
+    54→    { q: "Manakah contoh kegunaan AI di Malaysia?", type: "multiple", opts: ["Chatbot khidmat pelanggan", "Pengesanan fraud perbankan", "Terjemahan automatik BM-EN", "Semua di atas"], ans: "Semua di atas", exp: "AI digunakan secara meluas dalam perbankan, kerajaan dan perkhidmatan." },
+    55→  ],
+    56→  "AI-102": [
+    57→    { q: "Unsur manakah TIDAK termasuk dalam anatomi prompt yang baik?", type: "multiple", opts: ["Peranan", "Konteks", "Format output", "Lagu kegemaran"], ans: "Lagu kegemaran", exp: "Anatomi prompt: peranan, tugas, konteks, format output." },
+    58→    { q: "Teknik Chain-of-Thought meminta AI untuk...", type: "multiple", opts: ["Menyanyi", "Berfikir langkah demi langkah", "Memadam data", "Menyenaraikan harga"], ans: "Berfikir langkah demi langkah", exp: "CoT membantu AI menyelesaikan masalah secara berperingkat." },
+    59→    { q: "Pernyataan: Konteks yang lebih jelas menghasilkan jawapan yang lebih tepat.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "Konteks membantu AI memahami keperluan pengguna." },
+    60→    { q: "Apakah singkatan persona dalam prompt?", type: "short", opts: [], ans: "Peranan", exp: "Persona ialah peranan yang diberikan kepada AI." },
+    61→    { q: "Format output yang baik boleh berupa JSON, jadual atau...", type: "short", opts: [], ans: "Senarai", exp: "Format output yang jelas: JSON, jadual, senarai, dll." },
+    62→  ],
+    63→  "AI-103": [
+    64→    { q: "Untuk menulis e-mel profesional, prompt yang terbaik ialah...", type: "multiple", opts: ["tulis email", "Tulis e-mel jemputan mesyuarat bertona formal kepada pelanggan", "email jom", "hantar email"], ans: "Tulis e-mel jemputan mesyuarat bertona formal kepada pelanggan", exp: "Prompt spesifik dengan tona dan tujuan menghasilkan e-mel lebih baik." },
+    65→    { q: "AI boleh meringkaskan mesyuarat jika diberikan...", type: "short", opts: [], ans: "Transkrip", exp: "Berikan transkrip/nota mesyuarat untuk diringkaskan." },
+    66→    { q: "Pernyataan: Terjemahan AI selalu 100% tepat tanpa semakan.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Salah", exp: "Sentiasa semak terjemahan AI, terutama istilah teknikal." },
+    67→    { q: "Apakah risiko menggunakan AI untuk penyelidikan?", type: "multiple", opts: ["Maklumat salah/halusinasi", "Pantas sangat", "Terlalu murah", "Tiada risiko"], ans: "Maklumat salah/halusinasi", exp: "Sahkan fakta AI dengan sumber primer." },
+    68→    { q: "Brainstorming dengan AI paling berkesan bila...", type: "multiple", opts: ["Meminta banyak idea tanpa penilaian dahulu", "Meminta satu jawapan sahaja", "Tidak memberi konteks", "Menyalin terus"], ans: "Meminta banyak idea tanpa penilaian dahulu", exp: "Jana banyak idea dahulu, kemudian tapis." },
+    69→  ],
+    70→  "AI-201": [
+    71→    { q: "Langkah pertama analisis data ialah...", type: "multiple", opts: ["Membuat graf", "Pembersihan data", "Laporan", "Pembentangan"], ans: "Pembersihan data", exp: "Data bersih adalah asas analisis yang tepat." },
+    72→    { q: "Formula Excel untuk jumlah lajur A ialah...", type: "short", opts: [], ans: "=SUM(A:A)", exp: "SUM menjumlahkan julat sel." },
+    73→    { q: "Pernyataan: Visualisasi membantu memahami pola data dengan cepat.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "Graf mendedahkan trend dan outlier dengan cepat." },
+    74→    { q: "AI boleh membantu Excel menerusi...", type: "multiple", opts: ["Menjana formula", "Menerangkan formula", "Membersihkan data", "Semua di atas"], ans: "Semua di atas", exp: "AI membantu formula, penerangan dan pembersihan data." },
+    75→    { q: "Kesilapan biasa dalam tafsiran data ialah...", type: "short", opts: [], ans: "Correlasi bukan sebab", exp: "Correlasi tidak semestinya kausaliti." },
+    76→  ],
+    77→  "AI-202": [
+    78→    { q: "Tugas berulang yang sesuai diautomasi ialah...", type: "multiple", opts: ["Menyambut hari jadi rakan", "Memindahkan data antara hamparan", "Mesyuarat strategik", "Temu bual staf"], ans: "Memindahkan data antara hamparan", exp: "Tugas berulang & berstruktur sesuai diautomasi." },
+    79→    { q: "Alat tanpa kod membenarkan automatik tanpa...", type: "short", opts: [], ans: "Pengaturcaraan", exp: "No-code = tanpa menulis kod." },
+    80→    { q: "Pernyataan: Ejen AI boleh membuat keputusan berbilang langkah.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "Ejen AI boleh merancang dan melaksanakan beberapa langkah." },
+    81→    { q: "Metrik penjimatan masa diukur dengan...", type: "multiple", opts: ["Masa sebelum vs selepas automatik", "Bilangan pekerja", "Warna butang", "Saiz pejabat"], ans: "Masa sebelum vs selepas automatik", exp: "Bandingkan masa sebelum dan selepas automatik." },
+    82→    { q: "Risiko automatik ialah...", type: "short", opts: [], ans: "Ralat berskala besar", exp: "Ralat automatik boleh berlaku berkali-kali jika tidak dikesan." },
+    83→  ],
+    84→  "AI-203": [
+    85→    { q: "Chatbot khidmat pelanggan yang baik mesti...", type: "multiple", opts: ["Eskalasi kepada manusia bila perlu", "Tidak pernah mengaku tidak tahu", "Memaksa jawapan", "Sembunyi kontak"], ans: "Eskalasi kepada manusia bila perlu", exp: "Eskalasi kepada manusia penting untuk isu kompleks." },
+    86→    { q: "Analisis sentimen mengesan...", type: "short", opts: [], ans: "Emosi", exp: "Sentimen = positif, negatif atau neutral." },
+    87→    { q: "Pernyataan: Templat balasan menjadikan respons lebih konsisten.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "Templat memastikan konsistensi dan kelajuan." },
+    88→    { q: "Kawalan kualiti chatbot termasuk...", type: "multiple", opts: ["Pemantauan jawapan", "Ujian berkala", "Maklum balas pengguna", "Semua di atas"], ans: "Semua di atas", exp: "Kawalan kualiti = pemantauan + ujian + maklum balas." },
+    89→    { q: "Bila chatbot patut eskalasi ke manusia?", type: "short", opts: [], ans: "Emosi negatif", exp: "Eskalasi apabila pelanggan marah atau isu kompleks." },
+    90→  ],
+    91→  "AI-301": [
+    92→    { q: "PDPA 2010 memerlukan organisasi untuk...", type: "multiple", opts: ["Memohon persetujuan data", "Kongsi data bebas", "Abai privasi", "Simpan data selama-lamanya"], ans: "Memohon persetujuan data", exp: "Persetujuan adalah prinsip utama PDPA." },
+    93→    { q: "Bias dalam AI bermaksud...", type: "short", opts: [], ans: "Prasangka", exp: "Bias = kecondongan tidak adil dalam output AI." },
+    94→    { q: "Pernyataan: Halusinasi AI ialah apabila AI memberi maklumat palsu yakin.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "Halusinasi = AI mengarang maklumat dengan yakin." },
+    95→    { q: "Amalan terbaik ialah tidak memasukkan ____ ke alat AI awam.", type: "multiple", opts: ["Data sulit/peribadi", "Meme", "Soalan lazim", "Gambar landskap"], ans: "Data sulit/peribadi", exp: "Jangan masukkan data sulit ke AI awam." },
+    96→    { q: "Dasar AI organisasi biasanya menetapkan...", type: "multiple", opts: ["Penggunaan dibenarkan", "Jenis data dilarang", "Semakan manusia", "Semua di atas"], ans: "Semua di atas", exp: "Dasar AI merangkumi penggunaan, data dan semakan." },
+    97→  ],
+    98→  "AI-302": [
+    99→    { q: "Prompt injection ialah serangan yang...", type: "multiple", opts: ["Menyuntuk arahan tersembunyi", "Memadam akaun", "Mematikan komputer", "Mengubah laluan"], ans: "Menyuntuk arahan tersembunyi", exp: "Prompt injection memanipulasi AI menerusi input." },
+   100→    { q: "Untuk elak kebocoran data, gunakan AI yang...", type: "short", opts: [], ans: "Premis peribadi", exp: "On-premise / enterprise AI untuk data sensitif." },
+   101→    { q: "Pernyataan: Phishing dibantu AI lebih sukar dikesan kerana lebih munasabah.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "AI menjana e-mel phishing yang sangat munasabah." },
+   102→    { q: "Amalan terbaik keselamatan AI ialah...", type: "multiple", opts: ["Semak output AI", "Hadkan akses data", "Log penggunaan", "Semua di atas"], ans: "Semua di atas", exp: "Semak, hadkan dan log untuk keselamatan AI." },
+   103→    { q: "Tanda phishing dibantu AI ialah...", type: "short", opts: [], ans: "Urgensi terlampau", exp: "Urgensi terlampau dan pautan pelik adalah tanda phishing." },
+   104→  ],
+   105→  "AI-401": [
+   106→    { q: "API model bahasa biasanya diukur dengan...", type: "multiple", opts: ["Token", "Piksel", "Byte sahaja", "Kadar frames"], ans: "Token", exp: "Penggunaan API diukur dalam token." },
+   107→    { q: "RAG bermaksud Retrieval-Augmented...", type: "short", opts: [], ans: "Generation", exp: "RAG = Retrieval-Augmented Generation." },
+   108→    { q: "Pernyataan: RAG menggunakan pangkalan pengetahuan luaran untuk menjawab.", type: "truefalse", opts: ["Benar", "Salah"], ans: "Benar", exp: "RAG memanggil dokumen luaran untuk jawapan tepat." },
+   109→    { q: "Penilaian output AI boleh dilakukan menerusi...", type: "multiple", opts: ["Metrik automatik", "Penilaian manusia", "A/B testing", "Semua di atas"], ans: "Semua di atas", exp: "Gabungan metrik, manusia dan A/B untuk penilaian." },
+   110→    { q: "Kos API bergantung kepada...", type: "short", opts: [], ans: "Token", exp: "Lebih token = lebih mahal." },
+   111→  ],
+   112→};
+   113→
+   114→async function main() {
+   115→  console.log("Seeding LMS Al Amin...");
+   116→
+   117→  // Wipe
+   118→  await db.auditLog.deleteMany();
+   119→  await db.notification.deleteMany();
+   120→  await db.certificate.deleteMany();
+   121→  await db.attendanceCorrection.deleteMany();
+   122→  await db.attendance.deleteMany();
+   123→  await db.session.deleteMany();
+   124→  await db.quizAttempt.deleteMany();
+   125→  await db.question.deleteMany();
+   126→  await db.quiz.deleteMany();
+   127→  await db.lessonProgress.deleteMany();
+   128→  await db.lesson.deleteMany();
+   129→  await db.module.deleteMany();
+   130→  await db.enrollment.deleteMany();
+   131→  await db.course.deleteMany();
+   132→  await db.user.deleteMany();
+   133→  await db.category.deleteMany();
+   134→  await db.department.deleteMany();
+   135→
+   136→  // Departments
+   137→  const deptNames = ["Pentadbiran & Kewanan", "Khidmat Pelanggan", "IT & Pembangunan", "Sumber Manusia & Latihan", "Operasi", "Pemasaran"];
+   138→  const deptKeys = ["ADMIN_FINANCE", "CUSTOMER_SERVICE", "IT_DEV", "HR_TRAINING", "OPERATIONS", "MARKETING"];
+   139→  const departments = deptNames.map((name, i) => ({ id: `dept-${i}`, name, key: deptKeys[i] }));
+   140→  for (const d of departments) {
+   141→    await db.department.create({ data: { id: d.id, name: d.name } });
+   142→  }
+   143→
+   144→  // Categories
+   145→  const catNames = ["Asas", "Produktiviti", "Data", "Automasi", "Tadbir", "Pembangunan"];
+   146→  const categories: { id: string; name: string }[] = [];
+   147→  for (let i = 0; i < catNames.length; i++) {
+   148→    const id = `cat-${i}`;
+   149→    await db.category.create({ data: { id, name: catNames[i], description: `Kategori ${catNames[i]}` } });
+   150→    categories.push({ id, name: catNames[i] });
+   151→  }
+   152→
+   153→  // Users
+   154→  const r = rnd(42);
+   155→  const users: { id: string; staffNo: string; name: string; email: string; role: string; dept: string; position: string }[] = [];
+   156→
+   157→  // Admin
+   158→  users.push({ id: "u-admin", staffNo: "A1001", name: "Ahmad Faizal bin Rahman", email: "admin@alamin.edu.my", role: "ADMIN", dept: departments[3].id, position: "Pentadbir Sistem LMS" });
+   159→
+   160→  // HR / Pengurus
+   161→  users.push({ id: "u-hr1", staffNo: "A1002", name: "Siti Nurhaliza binti Osman", email: "hr1@alamin.edu.my", role: "HR", dept: departments[3].id, position: "Pegawai HR" });
+   162→  users.push({ id: "u-hr2", staffNo: "A1003", name: "Raj Kumar a/l Subramaniam", email: "hr2@alamin.edu.my", role: "HR", dept: departments[3].id, position: "Penyelaras Latihan" });
+   163→
+   164→  // Trainers (4)
+   165→  const trainers = [
+   166→    { id: "u-tr1", staffNo: "A1004", name: "Dr. Nurul Aina binti Hassan", email: "trainer1@alamin.edu.my", dept: departments[2].id, position: "Jurulatih AI Kanan" },
+   167→    { id: "u-tr2", staffNo: "A1005", name: "Lim Wei Jie", email: "trainer2@alamin.edu.my", dept: departments[2].id, position: "Jurulatih AI" },
+   168→    { id: "u-tr3", staffNo: "A1006", name: "Priya Devi a/p Krishnan", email: "trainer3@alamin.edu.my", dept: departments[3].id, position: "Fasilitator Latihan" },
+   169→    { id: "u-tr4", staffNo: "A1007", name: "Mohd Hafiz bin Ismail", email: "trainer4@alamin.edu.my", dept: departments[2].id, position: "Jurulatih Pembangun" },
+   170→  ];
+   171→  for (const t of trainers) users.push({ ...t, role: "TRAINER" });
+   172→
+   173→  // Staff (33)
+   174→  let staffIdx = 1008;
+   175→  const staffDeptKeys = ["ADMIN_FINANCE", "CUSTOMER_SERVICE", "IT_DEV", "OPERATIONS", "MARKETING", "HR_TRAINING"];
+   176→  for (let i = 0; i < 33; i++) {
+   177→    const dk = staffDeptKeys[i % staffDeptKeys.length];
+   178→    const dept = departments.find((d) => d.key === dk)!;
+   179→    const comm = i % 3;
+   180→    const first = comm === 0 ? pick(MALAY_FIRST, r) : comm === 1 ? pick(CHINESE_FIRST, r) : pick(INDIAN_FIRST, r);
+   181→    const last = comm === 0 || comm === 2 ? pick(LAST, r) : pick(LAST.filter((l) => ["Tan", "Lim", "Wong", "Goh", "Ng", "Chong", "Lee"].includes(l)), r);
+   182→    const name = `${first} ${last}`;
+   183→    const staffNo = `A${staffIdx + i}`;
+   184→    const email = `${first.toLowerCase()}.${staffNo.toLowerCase()}@alamin.edu.my`;
+   185→    const position = pick(POSITIONS[dk], r);
+   186→    users.push({ id: `u-st${i + 1}`, staffNo, name, email, role: "STAFF", dept: dept.id, position });
+   187→  }
+   188→
+   189→  // Create users in DB
+   190→  for (let i = 0; i < users.length; i++) {
+   191→    const u = users[i];
+   192→    await db.user.create({
+   193→      data: {
+   194→        id: u.id,
+   195→        staffNo: u.staffNo,
+   196→        name: u.name,
+   197→        email: u.email,
+   198→        passwordHash: hash("password123"),
+   199→        role: u.role,
+   200→        departmentId: u.dept,
+   201→        position: u.position,
+   202→        language: "ms",
+   203→        status: "ACTIVE",
+   204→        avatarColor: AVATAR_COLORS[i % AVATAR_COLORS.length],
+   205→      },
+   206→    });
+   207→  }
+   208→  // Set department heads
+   209→  await db.department.update({ where: { id: departments[0].id }, data: { headUserId: "u-hr1" } });
+   210→  await db.department.update({ where: { id: departments[1].id }, data: { headUserId: "u-hr2" } });
+   211→  await db.department.update({ where: { id: departments[2].id }, data: { headUserId: "u-tr1" } });
+   212→  await db.department.update({ where: { id: departments[3].id }, data: { headUserId: "u-hr1" } });
+   213→  await db.department.update({ where: { id: departments[4].id }, data: { headUserId: "u-hr2" } });
+   214→  await db.department.update({ where: { id: departments[5].id }, data: { headUserId: "u-hr1" } });
+   215→
+   216→  console.log(`Created ${users.length} users`);
+   217→
+   218→  // Courses, modules, lessons, quizzes, questions
+   219→  const courseIds: string[] = [];
+   220→  for (let ci = 0; ci < COURSES.length; ci++) {
+   221→    const c = COURSES[ci];
+   222→    const cat = categories.find((x) => x.name === c.cat)!;
+   223→    const instructorId = trainers[ci % trainers.length].id;
+   224→    const courseId = `c-${ci}`;
+   225→    courseIds.push(courseId);
+   226→    await db.course.create({
+   227→      data: {
+   228→        id: courseId,
+   229→        code: c.code,
+   230→        title: c.title,
+   231→        description: c.desc,
+   232→        categoryId: cat.id,
+   233→        level: c.level,
+   234→        language: "bilingual",
+   235→        durationHours: c.hours,
+   236→        instructorId,
+   237→        status: ci < 7 ? "PUBLISHED" : (ci === 7 ? "PUBLISHED" : "DRAFT"),
+   238→        passMark: 70,
+   239→        minAttendancePct: c.path === "ALL" ? 0 : 60,
+   240→        thumbnail: c.code,
+   241→        learningPath: c.path,
+   242→      },
+   243→    });
+   244→
+   245→    // 3 modules
+   246→    for (let mi = 0; mi < 3; mi++) {
+   247→      const moduleId = `${courseId}-m${mi}`;
+   248→      await db.module.create({ data: { id: moduleId, courseId, title: `Modul ${mi + 1}: ${c.topics[mi % c.topics.length]}`, order: mi } });
+   249→      // 3 lessons per module (2-4)
+   250→      const lessonCount = 3;
+   251→      for (let li = 0; li < lessonCount; li++) {
+   252→        const topicIdx = (mi * lessonCount + li) % c.topics.length;
+   253→        const type = (li === 0) ? "text" : (li === 1) ? "video" : (li === 2) ? "lab" : "pdf";
+   254→        const lessonId = `${moduleId}-l${li}`;
+   255→        const content = type === "video"
+   256→          ? `https://example.com/videos/${c.code}/${lessonId}`
+   257→          : type === "lab"
+   258→          ? `# Makmal Interaktif\n\nCuba prompt berikut:\n\n\`\`\`\nAnda ialah ${c.code === "AI-102" ? "jurutera prompt" : "pembantu AI"}. Tunjukkan contoh ${c.topics[topicIdx]}.\n\`\`\`\n\nBandingkan jawapan dengan dan tanpa konteks.`
+   259→          : `# ${c.topics[topicIdx]}\n\nDalam pelajaran ini, kita akan meneroka **${c.topics[topicIdx]}** dalam konteks ${c.title}.\n\n## Objektif\n- Memahami konsep ${c.topics[topicIdx]}\n- Mengaplikasi dalam kerja harian\n- Mengenal pasti had dan risiko\n\n## Kandungan\n${c.topics[topicIdx]} adalah komponen penting dalam ${c.title}. Penggunaan yang betul memerlukan pemahaman teori dan amalan.\n\n## Ringkasan\n${c.topics[topicIdx]} membantu kakitangan Al Amin menggunakan AI dengan berkesan dan selamat.`;
+   260→        await db.lesson.create({
+   261→          data: { id: lessonId, moduleId, title: `${c.topics[topicIdx]}${type === "video" ? " (Video)" : type === "lab" ? " (Makmal)" : ""}`, type, content, durationMin: 8 + li * 4, order: li },
+   262→        });
+   263→      }
+   264→    }
+   265→
+   266→    // 1 quiz with questions
+   267→    const quizId = `${courseId}-q`;
+   268→    const qbank = QUESTION_BANK[c.code] || QUESTION_BANK["AI-101"];
+   269→    await db.quiz.create({ data: { id: quizId, courseId, title: `Kuiz ${c.code}`, timeLimitMin: 15, maxAttempts: 3, passMark: 70 } });
+   270→    qbank.forEach((qb, qi) => {
+   271→      db.question.create({
+   272→        data: {
+   273→          id: `${quizId}-q${qi}`,
+   274→          quizId,
+   275→          type: qb.type,
+   276→          text: qb.q,
+   277→          options: JSON.stringify(qb.opts),
+   278→          correctAnswer: qb.ans,
+   279→          explanation: qb.exp,
+   280→          points: 1,
+   281→          order: qi,
+   282→        },
+   283→      });
+   284→    });
+   285→  }
+   286→  console.log(`Created ${COURSES.length} courses with modules, lessons, quizzes`);
+   287→
+   288→  // Enrollments: assign learning paths to staff + trainers
+   289→  const staffUsers = users.filter((u) => u.role === "STAFF");
+   290→  const allLearners = [...staffUsers, ...trainers.map((t) => ({ ...t, role: "TRAINER" as const }))];
+   291→  let enrollCount = 0;
+   292→  for (const u of allLearners) {
+   293→    const userDept = users.find((x) => x.id === u.id)!.dept;
+   294→    const deptKey = departments.find((d) => d.id === userDept)!.key;
+   295→    // Determine path
+   296→    const pathCourses = COURSES.filter((c) => c.path === "ALL" || c.path === deptKey || (deptKey === "HR_TRAINING" && c.path === "ALL"));
+   297→    for (const c of pathCourses) {
+   298→      const courseIdx = COURSES.indexOf(c);
+   299→      const courseId = courseIds[courseIdx];
+   300→      const r2 = r();
+   301→      const status = r2 < 0.45 ? "COMPLETED" : r2 < 0.75 ? "IN_PROGRESS" : "ENROLLED";
+   302→      const progress = status === "COMPLETED" ? 100 : status === "IN_PROGRESS" ? Math.floor(20 + r() * 60) : Math.floor(r() * 20);
+   303→      const completedAt = status === "COMPLETED" ? new Date(Date.now() - Math.floor(r() * 30) * 86400000) : null;
+   304→      const dueDate = new Date(Date.now() + Math.floor(10 + r() * 30) * 86400000);
+   305→      await db.enrollment.create({
+   306→        data: {
+   307→          id: `en-${enrollCount}`,
+   308→          userId: u.id,
+   309→          courseId,
+   310→          assignedBy: u.role === "STAFF" ? "u-hr1" : null,
+   311→          status,
+   312→          progressPct: progress,
+   313→          dueDate,
+   314→          completedAt,
+   315→        },
+   316→      });
+   317→      enrollCount++;
+   318→
+   319→      // Lesson progress for completed/in-progress
+   320→      if (status !== "ENROLLED") {
+   321→        const lessons = await db.lesson.findMany({ where: { module: { courseId } }, orderBy: { order: "asc" } });
+   322→        const lessonsToComplete = Math.floor((lessons.length * progress) / 100);
+   323→        for (let li = 0; li < lessons.length; li++) {
+   324→          await db.lessonProgress.upsert({
+   325→            where: { userId_lessonId: { userId: u.id, lessonId: lessons[li].id } },
+   326→            update: {},
+   327→            create: {
+   328→              userId: u.id,
+   329→              lessonId: lessons[li].id,
+   330→              completed: li < lessonsToComplete,
+   331→              lastPosition: li < lessonsToComplete ? "end" : "0",
+   332→            },
+   333→          });
+   334→        }
+   335→      }
+   336→
+   337→      // Quiz attempt for completed
+   338→      if (status === "COMPLETED") {
+   339→        const quiz = await db.quiz.findFirst({ where: { courseId } });
+   340→        if (quiz) {
+   341→          const score = 70 + Math.floor(r() * 30);
+   342→          await db.quizAttempt.create({
+   343→            data: {
+   344→              id: `qa-${enrollCount}`,
+   345→              userId: u.id,
+   346→              quizId: quiz.id,
+   347→              score,
+   348→              passed: score >= quiz.passMark,
+   349→              answers: JSON.stringify({ placeholder: true }),
+   350→              submittedAt: completedAt,
+   351→            },
+   352→          });
+   353→        }
+   354→      }
+   355→    }
+   356→  }
+   357→  console.log(`Created ${enrollCount} enrollments`);
+   358→
+   359→  // Certificates for completed courses (limit ~30)
+   360→  const completed = await db.enrollment.findMany({ where: { status: "COMPLETED" }, include: { course: true } });
+   361→  let certCount = 0;
+   362→  const certTarget = Math.min(30, completed.length);
+   363→  for (let i = 0; i < certTarget; i++) {
+   364→    const e = completed[i];
+   365→    const certNo = `LMS-AM-${String(certCount + 1).padStart(5, "0")}-${new Date().getFullYear()}`;
+   366→    const verifyCode = (Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6)).toUpperCase();
+   367→    await db.certificate.create({
+   368→      data: {
+   369→        id: `cert-${certCount}`,
+   370→        userId: e.userId,
+   371→        courseId: e.courseId,
+   372→        certNo,
+   373→        issuedAt: e.completedAt || new Date(),
+   374→        expiresAt: new Date(Date.now() + 365 * 86400000),
+   375→        verifyCode,
+   376→      },
+   377→    });
+   378→    certCount++;
+   379→  }
+   380→  console.log(`Created ${certCount} certificates`);
+   381→
+   382→  // Sessions: 24 (past, today, future)
+   383→  const trainerIds = trainers.map((t) => t.id);
+   384→  const now = new Date();
+   385→  const kualaLumpurOffset = 8 * 60; // UTC+8
+   386→  const localNow = new Date(now.getTime() + (kualaLumpurOffset * 60000) - (now.getTimezoneOffset() * 60000));
+   387→  const sessionCount = 24;
+   388→  let attCount = 0;
+   389→  for (let si = 0; si < sessionCount; si++) {
+   390→    const courseIdx = si % COURSES.length;
+   391→    const courseId = courseIds[courseIdx];
+   392→    const trainerId = trainerIds[si % trainerIds.length];
+   393→    // Spread: 10 past, 4 today, 10 future
+   394→    const dayOffset = si < 10 ? -(si + 1) * 3 : si < 14 ? 0 : (si - 13) * 3;
+   395→    const sessDate = new Date(localNow);
+   396→    sessDate.setDate(sessDate.getDate() + dayOffset);
+   397→    const startHour = 9 + (si % 4) * 2;
+   398→    const startTime = `${String(startHour).padStart(2, "0")}:00`;
+   399→    const endTime = `${String(startHour + Math.ceil(COURSES[courseIdx].hours / 2)).padStart(2, "0")}:30`;
+   400→    const qrToken = `qrtok-${si}-${Math.random().toString(36).slice(2, 10)}`;
+   401→    const sessionCode = String(100000 + Math.floor(r() * 899999));
+   402→    const codeExpiry = new Date(sessDate.getTime() + (startHour + 1) * 60000);
+   403→    const isOnline = si % 3 === 0;
+   404→    const sessionId = `sess-${si}`;
+   405→    await db.session.create({
+   406→      data: {
+   407→        id: sessionId,
+   408→        courseId,
+   409→        title: `${COURSES[courseIdx].code}: ${COURSES[courseIdx].title}`,
+   410→        date: new Date(sessDate.getFullYear(), sessDate.getMonth(), sessDate.getDate()),
+   411→        startTime,
+   412→        endTime,
+   413→        mode: isOnline ? "dalam_talian" : "bersemuka",
+   414→        location: isOnline ? null : `Bilik Latihan ${1 + (si % 4)}, Menara Al Amin, KL`,
+   415→        url: isOnline ? `https://meet.example.com/alamin-${si}` : null,
+   416→        capacity: 30,
+   417→        qrToken,
+   418→        sessionCode,
+   419→        codeExpiry,
+   420→        lateAfterMin: 15,
+   421→        trainerId,
+   422→      },
+   423→    });
+   424→
+   425→    // Attendance for staff (enrolled in this course)
+   426→    const enrolled = await db.enrollment.findMany({ where: { courseId }, take: 25 });
+   427→    const statuses = ["hadir", "hadir", "hadir", "hadir", "lewat", "tidak_hadir", "cuti"];
+   428→    for (let ai = 0; ai < enrolled.length; ai++) {
+   429→      const e = enrolled[ai];
+   430→      const isPast = dayOffset < 0 || (dayOffset === 0 && localNow.getHours() >= startHour + 2);
+   431→      if (!isPast) continue; // only record for past/today sessions that ended
+   432→      const status = pick(statuses, r);
+   433→      const checkInAt = status === "hadir" || status === "lewat"
+   434→        ? new Date(sessDate.getTime() + (startHour * 60 + (status === "lewat" ? 20 : 2)) * 60000)
+   435→        : null;
+   436→      const method = pick(["QR", "code", "manual", "import"], r);
+   437→      await db.attendance.create({
+   438→        data: {
+   439→          id: `att-${attCount}`,
+   440→          sessionId,
+   441→          userId: e.userId,
+   442→          status,
+   443→          checkInAt,
+   444→          method,
+   445→          recordedById: method === "manual" || method === "import" ? trainerId : null,
+   446→          remarks: status === "cuti" ? "Cuti tahunan" : status === "tidak_hadir" ? "Tiada notis" : null,
+   447→        },
+   448→      });
+   449→      attCount++;
+   450→    }
+   451→  }
+   452→  console.log(`Created ${sessionCount} sessions, ${attCount} attendance records`);
+   453→
+   454→  // Notifications
+   455→  const notifTypes = [
+   456→    { type: "assigned", msg: "Kursus AI-101 telah ditugaskan kepada anda" },
+   457→    { type: "upcoming", msg: "Sesi latihan akan datang esok pada 09:00" },
+   458→    { type: "deadline", msg: "Tarikh akhir kuiz AI-102 dalam 3 hari" },
+   459→    { type: "certificate", msg: "Sijil anda untuk AI-301 sedia untuk dimuat turun" },
+   460→  ];
+   461→  for (const u of users) {
+   462→    const n = 1 + Math.floor(r() * 3);
+   463→    for (let i = 0; i < n; i++) {
+   464→      const t = pick(notifTypes, r);
+   465→      await db.notification.create({
+   466→        data: {
+   467→          id: `n-${u.id}-${i}`,
+   468→          userId: u.id,
+   469→          type: t.type,
+   470→          message: t.msg,
+   471→          read: r() < 0.5,
+   472→          createdAt: new Date(Date.now() - Math.floor(r() * 5) * 86400000),
+   473→        },
+   474→      });
+   475→    }
+   476→  }
+   477→
+   478→  // Audit logs
+   479→  const auditActions = [
+   480→    { action: "CREATE_SESSION", entity: "Session" },
+   481→    { action: "BULK_ATTENDANCE", entity: "Attendance" },
+   482→    { action: "IMPORT_CSV", entity: "Attendance" },
+   483→    { action: "APPROVE_CORRECTION", entity: "AttendanceCorrection" },
+   484→    { action: "ISSUE_CERTIFICATE", entity: "Certificate" },
+   485→    { action: "RESET_DUMMY_DATA", entity: "System" },
+   486→    { action: "CREATE_COURSE", entity: "Course" },
+   487→    { action: "UPDATE_USER", entity: "User" },
+   488→  ];
+   489→  for (let i = 0; i < 40; i++) {
+   490→    const a = pick(auditActions, r);
+   491→    const actor = pick([...users.filter((u) => u.role === "ADMIN" || u.role === "HR" || u.role === "TRAINER")], r);
+   492→    await db.auditLog.create({
+   493→      data: {
+   494→        id: `al-${i}`,
+   495→        userId: actor.id,
+   496→        action: a.action,
+   497→        entity: a.entity,
+   498→        entityId: `ent-${i}`,
+   499→        before: JSON.stringify({ status: "hadir" }),
+   500→        after: JSON.stringify({ status: "lewat" }),
+   501→        timestamp: new Date(Date.now() - Math.floor(r() * 14) * 86400000),
+   502→      },
+   503→    });
+   504→  }
+   505→
+   506→  // Pending corrections
+   507→  const someAtt = await db.attendance.findMany({ where: { status: "lewat" }, take: 4 });
+   508→  for (let i = 0; i < someAtt.length; i++) {
+   509→    await db.attendanceCorrection.create({
+   510→      data: {
+   511→        id: `ac-${i}`,
+   512→        attendanceId: someAtt[i].id,
+   513→        requestedById: someAtt[i].userId,
+   514→        oldStatus: "lewat",
+   515→        newStatus: "hadir",
+   516→        reason: "Tiba tepat pada masa, kesilapan rekod QR",
+   517→        state: "PENDING",
+   518→      },
+   519→    });
+   520→  }
+   521→
+   522→  console.log("Seed complete!");
+   523→  console.log("Login: admin@alamin.edu.my / hr1@alamin.edu.my / trainer1@alamin.edu.my / A1008 staff");
+   524→  console.log("Password for all: password123");
+   525→}
+   526→
+   527→main()
+   528→  .catch((e) => {
+   529→    console.error(e);
+   530→    process.exit(1);
+   531→  })
+   532→  .finally(async () => {
+   533→    await db.$disconnect();
+   534→  });
+   535→

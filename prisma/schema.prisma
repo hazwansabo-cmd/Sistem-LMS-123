@@ -1,0 +1,294 @@
+// Prisma schema for LMS Al Amin Edu Oasis (Malaysia)
+// AI Training LMS - dummy database (persists via SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Core reference data =====
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  headUserId String?
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  courses     Course[]
+}
+
+// ===== Users & Auth =====
+
+model User {
+  id            String   @id @default(cuid())
+  staffNo       String   @unique
+  name          String
+  email         String   @unique
+  passwordHash  String   // dummy plain for demo
+  role          String   // ADMIN | HR | TRAINER | STAFF
+  departmentId  String?
+  position      String?
+  language      String   @default("ms") // ms | en
+  status        String   @default("ACTIVE") // ACTIVE | INACTIVE
+  avatarColor   String   @default("#0f4c75")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  department      Department?       @relation(fields: [departmentId], references: [id])
+  instructing     Course[]          @relation("InstructorCourses")
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  quizAttempts    QuizAttempt[]
+  sessionsTrained Session[]         @relation("TrainerSessions")
+  attendance      Attendance[]
+  correctionsReq  AttendanceCorrection[] @relation("Requester")
+  correctionsAppr AttendanceCorrection[] @relation("Approver")
+  certificates    Certificate[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  attendanceRecorded Attendance[]   @relation("RecordedBy")
+}
+
+// ===== Courses / Curriculum =====
+
+model Course {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  title            String
+  description      String
+  categoryId       String?
+  level            String   // PEMULA | PERTENGAHAN | LANJUTAN | SEMUA
+  language         String   @default("ms") // ms | en | bilingual
+  durationHours    Int      @default(4)
+  instructorId     String?
+  status           String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  passMark         Int      @default(70)
+  minAttendancePct Int      @default(0)
+  thumbnail        String?
+  learningPath     String?  // ALL | ADMIN_FINANCE | CUSTOMER_SERVICE | IT_DEV
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  instructor    User?         @relation("InstructorCourses", fields: [instructorId], references: [id])
+  modules       Module[]
+  quizzes       Quiz[]
+  enrollments   Enrollment[]
+  sessions      Session[]
+  certificates  Certificate[]
+}
+
+model Module {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  order     Int
+  createdAt DateTime @default(now())
+
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+}
+
+model Lesson {
+  id         String   @id @default(cuid())
+  moduleId   String
+  title      String
+  type       String   // text | video | pdf | lab
+  content    String   // markdown text / url
+  durationMin Int     @default(10)
+  order      Int
+  createdAt  DateTime @default(now())
+
+  module      Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+}
+
+model Quiz {
+  id           String   @id @default(cuid())
+  courseId     String
+  title        String
+  timeLimitMin Int      @default(20)
+  maxAttempts  Int      @default(3)
+  passMark     Int      @default(70)
+  createdAt    DateTime @default(now())
+
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  QuizAttempt[]
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  quizId        String
+  type          String   // multiple | truefalse | short
+  text          String
+  options       String   // JSON array string
+  correctAnswer String
+  explanation   String?
+  points        Int      @default(1)
+  order         Int      @default(0)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+// ===== Learning progress =====
+
+model Enrollment {
+  id           String   @id @default(cuid())
+  userId       String
+  courseId     String
+  assignedBy   String?  // user id of HR/trainer who assigned
+  status       String   @default("ENROLLED") // ENROLLED | IN_PROGRESS | COMPLETED
+  progressPct  Int      @default(0)
+  dueDate      DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model LessonProgress {
+  id           String   @id @default(cuid())
+  userId       String
+  lessonId     String
+  completed    Boolean  @default(false)
+  lastPosition String?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  quizId      String
+  score       Int      @default(0)
+  passed      Boolean  @default(false)
+  answers     String   // JSON
+  startedAt   DateTime @default(now())
+  submittedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+// ===== Attendance =====
+
+model Session {
+  id           String   @id @default(cuid())
+  courseId     String?
+  title        String
+  date         DateTime
+  startTime    String   // HH:mm
+  endTime      String   // HH:mm
+  mode         String   // bersemuka | dalam_talian
+  location     String?
+  url          String?
+  capacity     Int      @default(30)
+  qrToken      String   @unique
+  sessionCode  String   @unique // 6-digit
+  codeExpiry   DateTime // when 6-digit code expires
+  lateAfterMin Int      @default(15)
+  trainerId    String?
+  createdAt    DateTime @default(now())
+
+  course     Course?      @relation(fields: [courseId], references: [id])
+  trainer    User?        @relation("TrainerSessions", fields: [trainerId], references: [id])
+  attendance Attendance[]
+}
+
+model Attendance {
+  id           String   @id @default(cuid())
+  sessionId    String
+  userId       String
+  status       String   // hadir | lewat | tidak_hadir | cuti | dikecualikan
+  checkInAt    DateTime?
+  checkOutAt   DateTime?
+  method       String   // QR | code | manual | import | auto
+  recordedById String?
+  remarks      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  session     Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recordedBy  User?   @relation("RecordedBy", fields: [recordedById], references: [id])
+  corrections AttendanceCorrection[]
+
+  @@unique([sessionId, userId])
+}
+
+model AttendanceCorrection {
+  id            String   @id @default(cuid())
+  attendanceId  String
+  requestedById String
+  oldStatus     String
+  newStatus     String
+  reason        String
+  approvedById  String?
+  state         String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  requester  User       @relation("Requester", fields: [requestedById], references: [id])
+  approver   User?      @relation("Approver", fields: [approvedById], references: [id])
+}
+
+// ===== Certificates =====
+
+model Certificate {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  certNo      String    @unique
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime?
+  verifyCode  String    @unique
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+// ===== Notifications & Audit =====
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // assigned | upcoming | deadline | certificate
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  before    String?  // JSON
+  after     String?  // JSON
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
