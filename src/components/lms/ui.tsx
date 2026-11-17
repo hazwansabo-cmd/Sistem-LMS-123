@@ -49,7 +49,7 @@ export function StatCard({ label, value, icon, accent, sub }: { label: string; v
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground truncate">{label}</p>
-          <p className={cn("text-3xl font-bold mt-1", accentClass)}>{value}</p>
+          <div className={cn("text-3xl font-bold mt-1", accentClass)}>{value}</div>
           {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
         </div>
         {icon && <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg glass", accentClass)}>{icon}</div>}

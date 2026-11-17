@@ -13,7 +13,7 @@ const DEMO_ACCOUNTS = [
   { email: "admin@alamin.edu.my", role: "ADMIN", label: "Pentadbir", labelEn: "Administrator", icon: Shield, color: "oklch(0.72 0.16 160)" },
   { email: "hr1@alamin.edu.my", role: "HR", label: "HR / Pengurus", labelEn: "HR / Manager", icon: Users, color: "#7b2cbf" },
   { email: "trainer1@alamin.edu.my", role: "TRAINER", label: "Jurulatih", labelEn: "Trainer", icon: BookOpen, color: "#e76f51" },
-  { email: "A1008@alamin.edu.my", role: "STAFF", label: "Staf", labelEn: "Staff", icon: User, color: "#0f4c75" },
+  { email: "nur.a1008@alamin.edu.my", role: "STAFF", label: "Staf", labelEn: "Staff", icon: User, color: "#0f4c75" },
 ];
 
 export function LoginScreen() {

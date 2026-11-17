@@ -19,8 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const w = doc.internal.getWidth();
-  const h = doc.internal.getHeight();
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
 
   // Outer border (deep teal)
   doc.setDrawColor(15, 76, 117);

@@ -267,21 +267,23 @@ async function main() {
     const quizId = `${courseId}-q`;
     const qbank = QUESTION_BANK[c.code] || QUESTION_BANK["AI-101"];
     await db.quiz.create({ data: { id: quizId, courseId, title: `Kuiz ${c.code}`, timeLimitMin: 15, maxAttempts: 3, passMark: 70 } });
-    qbank.forEach((qb, qi) => {
-      db.question.create({
-        data: {
-          id: `${quizId}-q${qi}`,
-          quizId,
-          type: qb.type,
-          text: qb.q,
-          options: JSON.stringify(qb.opts),
-          correctAnswer: qb.ans,
-          explanation: qb.exp,
-          points: 1,
-          order: qi,
-        },
-      });
-    });
+    await Promise.all(
+      qbank.map((qb, qi) =>
+        db.question.create({
+          data: {
+            id: `${quizId}-q${qi}`,
+            quizId,
+            type: qb.type,
+            text: qb.q,
+            options: JSON.stringify(qb.opts),
+            correctAnswer: qb.ans,
+            explanation: qb.exp,
+            points: 1,
+            order: qi,
+          },
+        })
+      )
+    );
   }
   console.log(`Created ${COURSES.length} courses with modules, lessons, quizzes`);
 
